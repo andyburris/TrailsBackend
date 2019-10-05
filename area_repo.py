@@ -18,7 +18,7 @@ def clear_areas():
     for area in get_all_areas().stream():
         area.key.delete()
 
-def load_area_xml(id):
+async def load_area_xml(id):
     url = "https://skimap.org/SkiAreas/view/" + str(id) + ".xml"
     print("Loading area: " + str(id))
     resp = urllib.request.urlopen(url)
@@ -48,9 +48,9 @@ def parse_area_xml(root):
     return Area(id=id, name=name, maps=maps, info=info, parent_ids=parent_ids)
 
 def load_all_areas():
-    load_from_index()
+    asyncio.run(load_from_index())
 
-def load_from_index():
+async def load_from_index():
     url = "https://skimap.org/SkiAreas/index.xml"
     print("Loading areas index")
     resp = urllib.request.urlopen(url)
@@ -59,8 +59,11 @@ def load_from_index():
 
     child_area_ids = list(map(parse_area_id_tag, root.findall("skiArea")))
     print("Loaded area index: " + str(child_area_ids))
+    child_jobs = []
     for child_area_id in child_area_ids:
-        area = parse_area_xml(load_area_xml(child_area_id))
+        child_jobs.append(asyncio.create_task(load_area_xml(child_area_id)))
+    for job in child_jobs:
+        area = parse_area_xml(await job)
         area.to_entity()
 
 def save_update_area(area):

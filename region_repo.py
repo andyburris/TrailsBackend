@@ -11,7 +11,7 @@ def get_all_regions():
     return list(map(lambda doc: doc.to_dict(), docs))
 
 def get_all_regions_query():
-    query = client.collection(u'Region')
+    query = client.collection(u'Region').order_by(u'id')
     return query
 
 def clear_regions():
@@ -39,22 +39,35 @@ def parse_region_xml(root):
     return Region(id=id, name=name, map_count=map_count, parent_id=parent_id)
 
 def load_all_regions():
-    for i in range(1,4):
-        load_with_children(i)
+    asyncio.run(load_all_regions_async())
 
-def load_with_children(id):
-        xml = load_region_xml(id)
-        child_regions = xml.find("regions")
+async def load_all_regions_async():
+    print("Loading all")
+    child_jobs = []
+    for i in range(1,5):
+        child_jobs.append(asyncio.create_task(load_with_children(i)))
+    for job in child_jobs:
+        await job
 
-        region = parse_region_xml(xml)
-        region.to_entity()
+async def load_with_children(id):
+    print("Loading: " + str(id))
+    xml = load_region_xml(id)
+    child_regions = xml.find("regions")
 
-        name = xml.find("name").text
-        #print("Loaded Region: " + name.encode('utf-8', errors = 'replace'))
-        if(child_regions != None):
-             for child_region in child_regions:
-                 child_id = child_region.get("id")
-                 load_with_children(child_id)
+    region = parse_region_xml(xml)
+    region.to_entity()
+
+    name = xml.find("name").text
+    #print("Loaded Region: " + name.encode('utf-8', errors = 'replace'))
+    child_jobs = []
+    if(child_regions != None):
+            for child_region in child_regions:
+                child_id = child_region.get("id")
+                child_jobs.append(asyncio.create_task(load_with_children(child_id)))
+
+    for job in child_jobs:
+        await job
+
 
 def save_update_region(region):
     id = region.id
