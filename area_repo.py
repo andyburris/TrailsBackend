@@ -3,16 +3,10 @@ import datetime
 import asyncio
 from entities import *
 
-from google.cloud import firestore
 import xml.etree.ElementTree as ET 
 
 def get_all_areas():
-    docs = list(get_all_areas_query().stream())
-    return list(map(lambda doc: doc.to_dict(), docs))
-
-def get_all_areas_query():
-    query = client.collection(u'Area')
-    return query
+    return db.table('areas').all()
 
 def clear_areas():
     for area in get_all_areas().stream():
@@ -67,18 +61,17 @@ async def load_from_index():
         area.to_entity()
 
 def save_update_area(area):
-    query = client.query(kind = 'Area')
-    query.add_filter('id', '=', str(area.id))
-    returned_query = list(query.fetch())
+    id = area.id
+    returned_query = db.table('areas').search(where('id')==id)
     if (len(returned_query)>0):
         other = returned_query[0]
-        client.put(area.to_entity())
+        db.table('areas').upsert(area.to_dict(), where('id')==id)
         if not area == other:
             print("Replacing updated")
             update = Update(time = datetime.now(), type = UPDATE_TYPE_AREA, object_key = area.id)
-            client.put(update.to_entity())
+            db.table('updates').insert(update.to_dict())
         else:
             print("Not replacing")
     else:
         print("Adding area")
-        client.put(area.to_entity())
+        db.table('areas').insert(area.to_dict())

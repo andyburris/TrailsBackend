@@ -32,7 +32,7 @@ executor = Executor(app)
 @app.route('/load')
 def load():
     #executor.submit(load_all_regions)
-    executor.submit(load_all_areas)
+    #executor.submit(load_all_areas)
     return "Loading..."
 
 @app.route('/regions')

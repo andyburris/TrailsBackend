@@ -1,11 +1,11 @@
 
 import datetime
-from google.cloud import firestore
+from tinydb import TinyDB, where
 UPDATE_TYPE_REGION = 0
 UPDATE_TYPE_AREA = 1
 UPDATE_TYPE_MAP = 2
 
-client = firestore.Client()
+db = TinyDB('db.json')
 
 class Region():
     id = -1
@@ -24,18 +24,18 @@ class Region():
             return NotImplemented
         return self.id == other.id and self.name == other.name and self.map_count == other.map_count and self.parent_id == other.parent_id
     
-    def to_entity(self):
-        entity = client.collection(u'Region').document(str(self.id))
-        entity.set({
+    def to_dict(self):
+        region_dict = dict
+        region_dict.update({
             'id': self.id,
             'name': self.name,
             'map_count': self.map_count,
             'parent_id': self.parent_id,
         })
-        return entity
+        return region_dict
 
-def entity_to_region(entity):
-    return Region(entity.id, entity['name'], entity['map_count'], entity['parent_id'])
+def dict_to_region(area_dict):
+    return Region(area_dict['id'], area_dict['name'], area_dict['map_count'], area_dict['parent_id'])
 
 class Area():
     id = -1
@@ -56,9 +56,9 @@ class Area():
             return NotImplemented
         return self.id == other.id and self.name == other.name and self.maps == other.maps and self.info == other.info and self.parent_ids == other.parent_ids
     
-    def to_entity(self):
-        entity = client.collection('Area').document(str(self.id))
-        entity.set({
+    def to_dict(self):
+        area_dict = dict()
+        area_dict.update({
             'id': self.id,
             'name': self.name,
             'maps': self.maps,
@@ -67,8 +67,8 @@ class Area():
         })
         return entity
 
-def entity_to_region(entity):
-    return Region(entity.id, entity['name'], entity['map_count'], entity['parent_id'])
+def dict_to_area(area_dict):
+    return Area(area_dict['id'], area_dict['name'], area_dict['map_count'], area_dict['parent_id'])
 
 class Update():
     time = datetime.datetime.now
@@ -79,15 +79,14 @@ class Update():
         self.type = type
         self.object_key = object_key
 
-    def to_entity(self):
-        key = client.key('Update')
-        entity = client.collection('Update').document()
-        entity.update({
+    def to_dict(self):
+        update_dict = dict()
+        update_dict.update({
             'time': self.time,
             'type': self.type,
             'object_key': self.object_key,
         })
-        return entity
+        return update_dict
 
-def entity_to_update(entity):
-    return Update(entity['time'], entity['type'], entity['object_key'])
+def dict_to_update(update_dict):
+    return Update(update_dict['time'], update_dict['type'], update_dict['object_key'])

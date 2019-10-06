@@ -3,16 +3,10 @@ import datetime
 import asyncio
 from entities import *
 
-from google.cloud import firestore
 import xml.etree.ElementTree as ET 
 
 def get_all_regions():
-    docs = list(get_all_regions_query().stream())
-    return list(map(lambda doc: doc.to_dict(), docs))
-
-def get_all_regions_query():
-    query = client.collection(u'Region').order_by(u'id')
-    return query
+    return db.table('regions').all()
 
 def clear_regions():
     for region in get_all_regions().stream():
@@ -71,18 +65,16 @@ async def load_with_children(id):
 
 def save_update_region(region):
     id = region.id
-    query = client.query(kind = 'Region')
-    query.add_filter('id', '=', str(id))
-    returned_query = list(query.fetch())
+    returned_query = db.table('regions').search(where('id')==id)
     if (len(returned_query)>0):
         other = returned_query[0]
-        client.put(region.to_entity())
+        db.table('regions').upsert(region.to_dict(), where('id')==id)
         if not region == other:
             print("Replacing updated")
             update = Update(time = datetime.now(), type = UPDATE_TYPE_REGION, object_key = region.id)
-            client.put(update.to_entity())
+            db.table('updates').insert(update.to_dict())
         else:
             print("Not replacing")
     else:
         print("Adding region")
-        client.put(region.to_entity())
+        db.table('regions').insert(region.to_dict())
