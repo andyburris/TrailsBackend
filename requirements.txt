@@ -1,3 +1,4 @@
 Flask==1.0.2
 flask-executor
-google-cloud-firestore
+tinydb
+google-cloud-storage
