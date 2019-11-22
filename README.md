@@ -1,2 +1,3 @@
 # TrailsBackend
-Python backend for Trails hosted on Google App Engine
+Python backend for [Trails](https://github.com/andb3/Trails)
+- Flask server to run on apache2
