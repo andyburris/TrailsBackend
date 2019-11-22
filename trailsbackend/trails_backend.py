@@ -1,7 +1,10 @@
+import sys
+sys.path.insert(0,"<path/to/project/directory>")
+
 from flask import Flask, jsonify, request
-import local.region_repo as region_repo
-import local.area_repo as area_repo
-import local.maps_repo as maps_repo
+import trailsbackend.local.region_repo as region_repo
+import trailsbackend.local.area_repo as area_repo
+import trailsbackend.local.maps_repo as maps_repo
 
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app

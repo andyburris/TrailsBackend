@@ -1,5 +1,5 @@
-from model.Update import Update
-from local.db_repo import *
+from trailsbackend.model.Update import Update
+from trailsbackend.local.db_repo import *
 
 def get_all_regions():
     return db.table('regions').all()

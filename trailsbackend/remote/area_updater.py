@@ -1,6 +1,6 @@
-from model.Area import Area
-from model.Update import Update
-from local.db_repo import *
+from trailsbackend.model.Area import Area
+from trailsbackend.model.Update import Update
+from trailsbackend.local.db_repo import *
 import urllib.request
 import asyncio
 import xml.etree.ElementTree as ET 

@@ -1,7 +1,7 @@
-from model.Map import Map
-from model.Thumbnail import Thumbnail
-from model.Update import Update
-from local.db_repo import *
+from trailsbackend.model.Map import Map
+from trailsbackend.model.Thumbnail import Thumbnail
+from trailsbackend.model.Update import Update
+from trailsbackend.local.db_repo import *
 import urllib.request
 import asyncio
 import xml.etree.ElementTree as ET 

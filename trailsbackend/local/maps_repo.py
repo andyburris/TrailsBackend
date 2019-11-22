@@ -1,5 +1,5 @@
-from model.Update import Update
-from local.db_repo import *
+from trailsbackend.model.Update import Update
+from trailsbackend.local.db_repo import *
 
 def get_all_maps():
     return sorted(db.table('maps').all(), key=lambda a: a['id'])

@@ -1,4 +1,3 @@
-from aiotinydb import AIOTinyDB
 from tinydb import TinyDB, where
 from tinydb.storages import MemoryStorage
 
