@@ -13,11 +13,6 @@ class Region():
         self.child_areas = child_areas
         self.map_count = map_count
         self.parent_id = parent_id
-
-    def __eq__(self, other):
-        if not isinstance(other, Region):
-            return NotImplemented
-        return self.id == other.id and self.name == other.name and self.map_count == other.map_count and self.parent_id == other.parent_id
     
     def to_dict(self):
         region_dict = dict()

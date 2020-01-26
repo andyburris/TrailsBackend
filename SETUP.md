@@ -2,7 +2,7 @@
 ## Compute Engine
 Create an instance at https://console.cloud.google.com/compute/instances
 - Set name and region
-- Change boot disk to **Ubuntu 18.04 LTS** (can try 19.04 but sometimes fails on SSL connection)
+- Change boot disk to **Ubuntu 18.04 LTS** (can try 19.04 but sometimes fails on SSL connection) or **Debian 10** 
 - Allow network traffic (HTTP/HTTPS, might change later but need HTTP for debugging)
 
 Establish static IP at https://console.cloud.google.com/networking/addresses/list
@@ -20,8 +20,11 @@ Update firewall
 ```bash
 sudo ufw app list
 
-# Select Ngnix HTTP for testing
+# Allow Ngnix HTTP for testing and preserve SSH access
+sudo ufw allow ssh
 sudo ufw allow 'Nginx HTTP'
+
+sudo ufw enable
 
 # Verify
 sudo ufw status
@@ -38,20 +41,23 @@ sudo update-alternatives --config python3
 
 # Ensure that python3 maps to python3.7
 python3 -V
+sudo apt-get install python3-venv
 sudo apt-get install python3.7-venv
 ```
 
-Find the project your want to hold the project and clone from Github
+Find the directory you want to hold the project and clone from Github
 ```bash
 git clone https://github.com/andb3/TrailsBackend.git
 ```
 
-Enter the directory with ```cd TrailsBackend/``` and update the package path in the two top-level files
+Enter the directory with ```cd TrailsBackend/``` and update the package path in three files
 ```bash
-#In the second line of each, replace </path/to/project/directory> with the path to your directory (from the root directory)
+#In each file, replace </path/to/project/directory> with the path to your directory from root (i.e. /home/username/TrailsBackend)
 nano trailsbackend/trails_backend.py
 nano trailsbackend/updater.py
+nano trailsbackend/local/db_repo.py
 ```
+
 
 Setup the virtual environment
 ```bash 
@@ -182,9 +188,23 @@ Enforce HTTPS in the firewall
 sudo ufw delete allow 'Nginx HTTP'
 ```
 
-Access the server through your web browser at ```https://<domain>/regions/``` (replacing \<domain> with your domain name, note https)
+Access the server through your web browser at ```https://<domain>/regions/``` (replacing \<domain> with your domain name, note the ```https```)
+
+## Update Scheduling
+Open the cron schedule with
+```bash
+crontab -e
+```
+
+Select a text editor if prompted (nano is used throughout this setup) and enter under the comments:
+```bash
+# Runs script using virtualenv at midnight every day
+0 0 * * * </path/to/project/directory>/env/bin/python3 </path/to/project/directory>/trailsbackend/updater.py 
+```
+
 
 # Sources
 https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04 \
 https://www.digitalocean.com/community/tutorials/how-to-install-nginx-on-ubuntu-18-04
 https://www.itsupportwale.com/blog/how-to-upgrade-to-python-3-7-on-ubuntu-18-10/
+https://medium.com/@gavinwiener/how-to-schedule-a-python-script-cron-job-dea6cbf69f4e

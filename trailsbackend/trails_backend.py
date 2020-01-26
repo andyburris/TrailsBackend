@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0,"<path/to/project/directory>")
+sys.path.insert(0,"</path/to/project/directory>")
 
 from flask import Flask, jsonify, request
 import trailsbackend.local.region_repo as region_repo
