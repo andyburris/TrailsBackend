@@ -55,14 +55,14 @@ async def load_from_areas():
     #await load_save_map(14834)
 
 async def load_from_area(area_id):
-        area = db.table('areas').search(where('id')==area_id)[0]
-        child_jobs = []
-        for map_id in area.get("maps"):
-            child_jobs.append(asyncio.create_task(load_save_map(map_id)))
-        for job in child_jobs:
-            await job
-        
-
+    area = db.table('areas').search(where('id')==area_id)[0]
+    child_jobs = []
+    for map_id in area.get("maps"):
+        child_jobs.append(asyncio.create_task(load_save_map(map_id)))
+    for job in child_jobs:
+        await job
+    #purge_deleted_maps(area)
+    # test with 1540579760 in image url
 
 async def load_save_map(map_id):
     loaded_map = parse_map_xml(load_map_xml(map_id))
@@ -86,3 +86,9 @@ def save_update_map(map_to_save):
         db.table('maps').insert(map_to_save.to_dict())
         update = Update(type = Update.TYPE_MAP, object_key = map_to_save.id)
         db.table('updates').insert(update.to_dict())
+
+def purge_deleted_maps(area):
+    old = db.table('maps').search(where('parent_id')==area.id)
+    for map_id in old:
+        if not area.maps.__contains__(map_id):
+            db.table('maps').remove('id'==map_id)

@@ -11,6 +11,7 @@ import trailsbackend.local.maps_repo as maps_repo
 # called `app` in `main.py`.
 app = Flask(__name__)
 
+
 ############## Regions ##############
 @app.route('/regions/')
 def regions_all():
@@ -24,6 +25,7 @@ def regions_count():
 def regions_updates():
     last_time = request.args.get('last') or 0
     return jsonify(region_repo.get_all_region_updates(int(last_time)))
+
 
 ############## Areas ##############
 
@@ -39,6 +41,8 @@ def areas_count():
 def areas_new():
     last_time = request.args.get('last') or 0
     return jsonify(area_repo.get_all_area_updates(int(last_time)))
+
+
 ############## Maps ##############
 
 @app.route('/maps/')
