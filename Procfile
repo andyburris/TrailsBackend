@@ -1,1 +1,1 @@
-web: gunicorn trailsbackend.wsgi
+web: gunicorn trailsbackend:app
