@@ -1,10 +1,30 @@
-from trailsbackend.model.Map import Map
-from trailsbackend.model.Thumbnail import Thumbnail
-from trailsbackend.model.Update import Update
-from trailsbackend.local.db_repo import *
+from model.Map import Map, dict_to_map
+from model.Thumbnail import Thumbnail
+from local.db_repo import *
+from local.area_repo import *
+import local.maps_repo as maps_repo
 import urllib.request
 import asyncio
-import xml.etree.ElementTree as ET 
+import xml.etree.ElementTree as ET
+import datetime
+from pymongo import ReplaceOne
+
+def load_all_maps():
+    asyncio.run(load_from_areas())
+
+async def load_from_areas():
+    areas = get_all_areas(0)
+    child_jobs = []
+    for area in areas:
+        for map_id in area.get("maps"):
+            child_jobs.append(asyncio.create_task(get_map(map_id)))
+    all_maps = []
+    for job in child_jobs:
+        all_maps.append(await job)
+    save_update_maps(all_maps)
+
+async def get_map(map_id):
+    return parse_map_xml(load_map_xml(map_id))
 
 def load_map_xml(id):
     url = "https://skimap.org/SkiMaps/view/" + str(id) + ".xml"
@@ -41,54 +61,22 @@ def parse_map_xml(root):
     parent_id = root.find("skiArea").get("id")
     return Map(map_id, year, thumbnails, image_url, parent_id)
 
-def load_all_maps():
-    asyncio.run(load_from_areas())
+def save_update_maps(maps):
+    saved_maps = list(map(lambda d: dict_to_map(d), maps_repo.get_all_maps(0)))
+    new_or_updated = [item for item in maps if item not in saved_maps] # need to create update objects for both new objects and updated ones
 
-async def load_from_areas():
-    areas = db.table('areas').all()
-    child_jobs = []
-    for area in areas:
-        for map_id in area.get("maps"):
-            child_jobs.append(asyncio.create_task(load_save_map(map_id)))
-    for job in child_jobs:
-        await job
-    #await load_save_map(14834)
+    print("new or updated = " + str(new_or_updated))
 
-async def load_from_area(area_id):
-    area = db.table('areas').search(where('id')==area_id)[0]
-    child_jobs = []
-    for map_id in area.get("maps"):
-        child_jobs.append(asyncio.create_task(load_save_map(map_id)))
-    for job in child_jobs:
-        await job
-    #purge_deleted_maps(area)
-    # test with 1540579760 in image url
+    if(len(new_or_updated) == 0):
+        return
 
-async def load_save_map(map_id):
-    loaded_map = parse_map_xml(load_map_xml(map_id))
-    save_update_map(loaded_map)
+    for map_item in new_or_updated:
+        map_item.last_update = datetime.datetime.now()
 
-def save_update_map(map_to_save):
-    #print("save_update_map: " + str(map))
-    id = map_to_save.id
-    returned_query = db.table('maps').search(where('id')==id)
-    if (len(returned_query)>0):
-        other = returned_query[0]
-        db.table('maps').upsert(map_to_save.to_dict(), where('id')==id)
-        if not map_to_save.to_dict() == other:
-            print("Replacing updated")
-            update = Update(type = Update.TYPE_MAP, object_key = map_to_save.id)
-            db.table('updates').insert(update.to_dict())
-        else:
-            print("Not replacing")
-    else:
-        print("Adding map " + str(map_to_save.id))
-        db.table('maps').insert(map_to_save.to_dict())
-        update = Update(type = Update.TYPE_MAP, object_key = map_to_save.id)
-        db.table('updates').insert(update.to_dict())
+    db.maps.bulk_write(list(map(lambda r: ReplaceOne({'_id': r.id}, r.to_dict(), upsert=True), new_or_updated)))
 
 def purge_deleted_maps(area):
-    old = db.table('maps').search(where('parent_id')==area.id)
+    old = db.maps.find(where('parent_id')==area.id)
     for map_id in old:
         if not area.maps.__contains__(map_id):
-            db.table('maps').remove('id'==map_id)
+            db.maps.remove('id'==map_id)

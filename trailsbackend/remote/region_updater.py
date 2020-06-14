@@ -1,14 +1,49 @@
-from trailsbackend.model.Region import Region
-from trailsbackend.model.Update import Update
-from trailsbackend.local.db_repo import *
+from model.Region import Region, dict_to_region
+from local.db_repo import *
+import local.region_repo as region_repo
 import urllib.request
 import asyncio
+import datetime
 import xml.etree.ElementTree as ET 
+from pymongo import ReplaceOne
 
 import sys
 import os
 
 print(os.getcwd())
+
+def load_all_regions():
+    asyncio.run(load_all_regions_async())
+
+async def load_all_regions_async():
+    print("Loading all")
+    child_jobs = []
+    for i in range(1,5):
+        child_jobs.append(asyncio.create_task(load_with_children(i)))
+    all_regions = []
+    for job in child_jobs:
+        all_regions += await job # will concat the list returned by the job 
+    save_update_regions(all_regions)
+
+
+async def load_with_children(id):
+    xml = load_region_xml(id)
+    child_region_ids = xml.find("regions")
+
+    region = parse_region_xml(xml)
+
+    name = xml.find("name").text
+    #print("Loaded Region: " + name.encode('utf-8', errors = 'replace'))
+    child_jobs = []
+    if(child_region_ids != None):
+        for child_region in child_region_ids:
+            child_id = child_region.get("id")
+            child_jobs.append(asyncio.create_task(load_with_children(child_id)))
+    child_regions = []
+    for job in child_jobs:
+        child_regions += await job # will concat the list returned by the job 
+    return child_regions + [region]
+
 def load_region_xml(id):
     url = "https://skimap.org/Regions/view/" + str(id) + ".xml"
     print("Loading Region: " + str(id))
@@ -16,9 +51,6 @@ def load_region_xml(id):
     content = resp.read()
     root = ET.fromstring(content)
     return root
-
-def parse_id_tag(tag):
-    return tag.get("id")
 
 def parse_region_xml(root):
     id = int(root.get("id"))
@@ -40,50 +72,19 @@ def parse_region_xml(root):
         parent_id = int(parent.attrib.get("id"))
     return Region(id=id, name=name, child_regions=child_regions, child_areas=child_areas, map_count=map_count, parent_id=parent_id)
 
-def load_all_regions():
-    asyncio.run(load_all_regions_async())
+def parse_id_tag(tag):
+    return tag.get("id")
 
-async def load_all_regions_async():
-    print("Loading all")
-    child_jobs = []
-    for i in range(1,5):
-        child_jobs.append(asyncio.create_task(load_with_children(i)))
-    for job in child_jobs:
-        await job
+def save_update_regions(regions):
+    saved_regions = list(map(lambda d: dict_to_region(d), region_repo.get_all_regions(0)))
+    new_or_updated = [item for item in regions if item not in saved_regions] # need to create update objects for both new objects and updated ones
 
-async def load_with_children(id):
-    print("Loading: " + str(id))
-    xml = load_region_xml(id)
-    child_regions = xml.find("regions")
+    print("new or updated = " + str(new_or_updated))
 
-    region = parse_region_xml(xml)
-    save_update_region(region)
+    if(len(new_or_updated) == 0):
+        return
 
-    name = xml.find("name").text
-    #print("Loaded Region: " + name.encode('utf-8', errors = 'replace'))
-    child_jobs = []
-    if(child_regions != None):
-            for child_region in child_regions:
-                child_id = child_region.get("id")
-                child_jobs.append(asyncio.create_task(load_with_children(child_id)))
+    for region in new_or_updated:
+        region.last_update = datetime.datetime.now()
 
-    for job in child_jobs:
-        await job
-
-
-def save_update_region(region):
-    returned_query = db.table('regions').search(where('id')==region.id)
-    if (len(returned_query)>0):
-        other = returned_query[0]
-        db.table('regions').upsert(region.to_dict(), where('id')==region.id)
-        if not region.to_dict() == other:
-            print("Replacing updated")
-            update = Update(type = Update.TYPE_REGION, object_key = region.id)
-            db.table('updates').insert(update.to_dict())
-        else:
-            print("Not replacing")
-    else:
-        print("Adding region")
-        db.table('regions').insert(region.to_dict())
-        update = Update(type = Update.TYPE_REGION, object_key = region.id)
-        db.table('updates').insert(update.to_dict())
+    db.regions.bulk_write(list(map(lambda r: ReplaceOne({'_id': r.id}, r.to_dict(), upsert=True), new_or_updated)))

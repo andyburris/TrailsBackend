@@ -57,7 +57,7 @@ nano trailsbackend/trails_backend.py
 nano trailsbackend/updater.py
 nano trailsbackend/local/db_repo.py
 ```
-Note: if you install ```rpl``` (```sudo apt install rpl```), you can use ```rpl -R '</path/to/project/directory>' /home/username/TrailsBackend/ /trailsbackend``` to automate the replacement
+Note: if you install ```rpl``` (```sudo apt install rpl```), you can use ```rpl -R '</path/to/project/directory>' /trailsbackend``` to automate the replacement
 
 
 Setup the virtual environment

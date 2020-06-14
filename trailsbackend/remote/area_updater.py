@@ -1,9 +1,34 @@
-from trailsbackend.model.Area import Area
-from trailsbackend.model.Update import Update
-from trailsbackend.local.db_repo import *
+from model.Area import Area, dict_to_area
+import local.area_repo as area_repo
+from local.db_repo import *
 import urllib.request
 import asyncio
 import xml.etree.ElementTree as ET 
+import datetime
+from pymongo import ReplaceOne
+
+def load_all_areas():
+    asyncio.run(load_from_index())
+
+async def load_from_index():
+    url = "https://skimap.org/SkiAreas/index.xml"
+    print("Loading areas index")
+    resp = urllib.request.urlopen(url)
+    content = resp.read()
+    root = ET.fromstring(content)
+
+    child_area_ids = list(map(parse_id_tag, root.findall("skiArea")))
+    print("Loaded area index: " + str(child_area_ids))
+    child_jobs = []
+    for child_area_id in child_area_ids:
+        child_jobs.append(asyncio.create_task(get_area(child_area_id)))
+    all_areas = []
+    for job in child_jobs:
+        all_areas.append(await job)
+    save_update_areas(all_areas)
+    
+async def get_area(id):
+    return parse_area_xml(load_area_xml(id))
 
 def load_area_xml(id):
     url = "https://skimap.org/SkiAreas/view/" + str(id) + ".xml"
@@ -34,43 +59,16 @@ def parse_area_xml(root):
     parent_ids = list(map(parse_id_tag, parent_elements))
     return Area(id=id, name=name, maps=maps, info=info, parent_ids=parent_ids)
 
-def load_all_areas():
-    asyncio.run(load_from_index())
+def save_update_areas(areas):
+    saved_areas = list(map(lambda d: dict_to_area(d), area_repo.get_all_areas(0)))
+    new_or_updated = [item for item in areas if item not in saved_areas] # need to create update objects for both new objects and updated ones
 
-async def load_from_index():
-    url = "https://skimap.org/SkiAreas/index.xml"
-    print("Loading areas index")
-    resp = urllib.request.urlopen(url)
-    content = resp.read()
-    root = ET.fromstring(content)
+    print("new or updated = " + str(new_or_updated))
 
-    child_area_ids = list(map(parse_id_tag, root.findall("skiArea")))
-    print("Loaded area index: " + str(child_area_ids))
-    child_jobs = []
-    for child_area_id in child_area_ids:
-        child_jobs.append(asyncio.create_task(load_save_area(child_area_id)))
-    for job in child_jobs:
-        await job
+    if(len(new_or_updated) == 0):
+        return
 
-async def load_save_area(area_id):
-    area = parse_area_xml(load_area_xml(area_id))
-    if(area.name!="" and area.name!=None):
-        save_update_area(area)
+    for area in new_or_updated:
+        area.last_update = datetime.datetime.now()
 
-def save_update_area(area):
-    #print("save_update_area: " + str(area))
-    returned_query = db.table('areas').search(where('id')==area.id)
-    if (len(returned_query)>0):
-        other = returned_query[0]
-        db.table('areas').upsert(area.to_dict(), where('id')==area.id)
-        if not area.to_dict() == other:
-            print("Replacing updated")
-            update = Update(type = Update.TYPE_AREA, object_key = area.id)
-            db.table('updates').insert(update.to_dict())
-        else:
-            print("Not replacing")
-    else:
-        print("Adding area " + str(area.id))
-        db.table('areas').insert(area.to_dict())
-        update = Update(type = Update.TYPE_AREA, object_key = area.id)
-        db.table('updates').insert(update.to_dict())
+    db.areas.bulk_write(list(map(lambda r: ReplaceOne({'_id': r.id}, r.to_dict(), upsert=True), new_or_updated)))

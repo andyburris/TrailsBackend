@@ -1,21 +1,16 @@
-from trailsbackend.model.Update import Update
-from trailsbackend.local.db_repo import *
+from local.db_repo import *
+from utils import id_sort
 
-def get_all_maps():
-    return sorted(db.table('maps').all(), key=lambda a: a['id'])
+def get_all_maps(last_update):
+    areas = db.maps.find({'last_update': {'$gte': last_update}})
+    return sorted(list(areas), key=id_sort)
 
 def get_maps_count():
-    return len(db.table('maps'))
+    return db.maps.count_documents({})
 
 def get_map(map_id):
-    return db.table('maps').search(where('id')==map_id)
-
-def get_all_map_updates(last_update):
-    updates = db.table('updates').search((where('type')==Update.TYPE_MAP) & (where('time')>=last_update))
-    map_ids = list(map(lambda u: u['object_key'], updates))
-    all_maps = db.table('maps').all()
-    return list(filter(lambda a: a['id'] in map_ids, all_maps))
+    return db.maps.find(where('id')==map_id)
 
 def clear_maps():
-    db.table('maps').purge()
+    db.maps.delete_many({})
 

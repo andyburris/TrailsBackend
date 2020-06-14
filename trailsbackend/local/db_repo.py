@@ -1,4 +1,4 @@
-from tinydb import TinyDB, where
-from tinydb.storages import MemoryStorage
+import pymongo
 
-db = TinyDB('</path/to/project/directory>' + '/trailsbackend/db.json')
+client = pymongo.MongoClient("mongodb+srv://trailsBackend:HmWMXwX0kNtxAmK8@trailsdatabase-b2ycz.mongodb.net/backend?retryWrites=true&w=majority")
+db = client.backend
