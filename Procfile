@@ -1,1 +1,1 @@
-web: gunicorn trailsbackend:app
+web: gunicorn trailsbackend.trails_backend:app
