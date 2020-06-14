@@ -1,8 +1,8 @@
 from model.Map import Map, dict_to_map
 from model.Thumbnail import Thumbnail
-from local.db_repo import *
-from local.area_repo import *
-import local.maps_repo as maps_repo
+from trailsbackend.local.db_repo import *
+from trailsbackend.local.area_repo import *
+import trailsbackend.local.maps_repo as maps_repo
 import urllib.request
 import asyncio
 import xml.etree.ElementTree as ET

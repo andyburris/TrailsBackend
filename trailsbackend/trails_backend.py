@@ -1,10 +1,10 @@
 import sys
-sys.path.insert(0,"/mnt/s/VSCodeProjects/trails-backend-3")
+#sys.path.insert(0,"/mnt/s/VSCodeProjects/trails-backend-3")
 
 from flask import Flask, jsonify, request
-import local.region_repo as region_repo
-import local.area_repo as area_repo
-import local.maps_repo as maps_repo
+import trailsbackend.local.region_repo as region_repo
+import trailsbackend.local.area_repo as area_repo
+import trailsbackend.local.maps_repo as maps_repo
 
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
@@ -65,7 +65,7 @@ def maps_count():
 ############## Test ##############
 
 if __name__ == '__main__':
-    # This is used when running locally only. When deploying to Google App
+    # This is used when running trailsbackend.locally only. When deploying to Google App
     # Engine, a webserver process such as Gunicorn will serve the app. This
     # can be configured by adding an `entrypoint` to app.yaml.
     app.run(host='127.0.0.1', port=8080, debug=True)

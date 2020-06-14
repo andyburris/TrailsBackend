@@ -1,6 +1,6 @@
 from model.Region import Region, dict_to_region
-from local.db_repo import *
-import local.region_repo as region_repo
+from trailsbackend.local.db_repo import *
+import trailsbackend.local.region_repo as region_repo
 import urllib.request
 import asyncio
 import datetime

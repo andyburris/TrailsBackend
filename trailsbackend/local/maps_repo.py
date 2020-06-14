@@ -1,5 +1,5 @@
-from local.db_repo import *
-from utils import id_sort
+from trailsbackend.local.db_repo import *
+from trailsbackend.utils import id_sort
 
 def get_all_maps(last_update):
     areas = db.maps.find({'last_update': {'$gte': last_update}})

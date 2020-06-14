@@ -1,6 +1,6 @@
 from model.Area import Area, dict_to_area
-import local.area_repo as area_repo
-from local.db_repo import *
+import trailsbackend.local.area_repo as area_repo
+from trailsbackend.local.db_repo import *
 import urllib.request
 import asyncio
 import xml.etree.ElementTree as ET 
