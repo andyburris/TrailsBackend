@@ -1,7 +1,6 @@
 def id_sort(to_sort):
-    return to_sort['_id']
+    return to_sort['id']
 
 def remove_underscore(dict):
-    id = dict['_id']
-    dict.remove('_id')
-    dict['id'] = id
+    dict['id'] = dict.pop('_id')
+    return dict
